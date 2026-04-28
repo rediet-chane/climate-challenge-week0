@@ -103,3 +103,5 @@ plt.close()
 
 print("Created: temperature_comparison.png")
 print("\nAll files ready!")
+df.to_csv("data/ethiopia_clean.csv", index=False)
+print("Saved cleaned data to data/ethiopia_clean.csv")

@@ -1,31 +1,34 @@
 """
 Ethiopia Climate Data Analysis
 Task 2: Data Profiling, Cleaning & EDA
+Data Quality Decisions:
+- Replaced -999 (NASA sentinel) with NaN
+- Dropped duplicate rows (0 found)
+- Forward-fill for missing weather values
+- Retained outliers (extreme events are meaningful for climate analysis)
 """
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+import sys
 
 print("=" * 60)
 print("ETHIOPIA CLIMATE DATA ANALYSIS")
 print("=" * 60)
 
-# Check if data file exists
-data_path = "data/ethiopia.csv"
-if not os.path.exists(data_path):
-    print(f"ERROR: Cannot find {data_path}")
-    print("Make sure your CSV file is in the 'data' folder")
-    exit(1)
+# Load data with error handling
+try:
+    df = pd.read_csv("data/ethiopia.csv")
+    print(f"\n1. LOADING DATA...")
+    print(f"   Loaded {len(df)} rows, {len(df.columns)} columns")
+except FileNotFoundError:
+    print("ERROR: data/ethiopia.csv not found")
+    print("Download the file and place it in the data/ folder")
+    sys.exit(1)
 
-# 1. LOAD DATA
-print("\n1. LOADING DATA...")
-df = pd.read_csv(data_path)
-print(f"   Loaded {len(df)} rows, {len(df.columns)} columns")
-
-# 2. CLEAN DATA
-print("\n2. CLEANING DATA...")
+# Clean data
+print(f"\n2. CLEANING DATA...")
 df = df.replace(-999, np.nan)
 print(f"   Replaced -999 with NaN")
 
@@ -39,14 +42,23 @@ df['MONTH'] = df['DATE'].dt.month
 df['COUNTRY'] = 'Ethiopia'
 print(f"   Date range: {df['DATE'].min()} to {df['DATE'].max()}")
 
-# 3. CREATE MONTHLY AVERAGES
-monthly = df.groupby('MONTH').agg({
-    'T2M': 'mean',
-    'PRECTOTCORR': 'sum'
-}).reset_index()
+# Export cleaned dataset
+df.to_csv("data/ethiopia_clean.csv", index=False)
+print(f"   Saved cleaned data to data/ethiopia_clean.csv")
 
-# 4. PLOT 1: Monthly Temperature
-print("\n3. GENERATING PLOT 1: Monthly Temperature...")
+# Extreme event analysis
+print(f"\n3. EXTREME EVENT ANALYSIS...")
+extreme_heat = df[df['T2M_MAX'] > 35].shape[0]
+print(f"   Extreme heat days (T2M_MAX > 35°C): {extreme_heat}")
+
+dry_days = df[df['PRECTOTCORR'] < 1].shape[0]
+print(f"   Dry days (PRECTOTCORR < 1mm): {dry_days}")
+
+# Monthly averages
+monthly = df.groupby('MONTH').agg({'T2M': 'mean', 'PRECTOTCORR': 'sum'}).reset_index()
+
+# Plot 1: Temperature
+print(f"\n4. GENERATING PLOTS...")
 plt.figure(figsize=(12, 5))
 plt.bar(monthly['MONTH'], monthly['T2M'], color='coral')
 plt.title('Ethiopia: Monthly Average Temperature (2015-2026)', fontsize=14)
@@ -57,8 +69,7 @@ plt.tight_layout()
 plt.savefig('ethiopia_temperature.png')
 print("   Saved: ethiopia_temperature.png")
 
-# 5. PLOT 2: Monthly Precipitation
-print("\n4. GENERATING PLOT 2: Monthly Precipitation...")
+# Plot 2: Precipitation
 plt.figure(figsize=(12, 5))
 plt.bar(monthly['MONTH'], monthly['PRECTOTCORR'], color='steelblue')
 plt.title('Ethiopia: Monthly Total Precipitation (2015-2026)', fontsize=14)
@@ -69,8 +80,7 @@ plt.tight_layout()
 plt.savefig('ethiopia_precipitation.png')
 print("   Saved: ethiopia_precipitation.png")
 
-# 6. PLOT 3: Temperature Trend Over Time
-print("\n5. GENERATING PLOT 3: Daily Temperature Trend...")
+# Plot 3: Daily trend
 plt.figure(figsize=(14, 5))
 plt.plot(df['DATE'][:500], df['T2M'][:500], 'r-', linewidth=0.5)
 plt.title('Ethiopia: Daily Temperature Trend (First 500 days)', fontsize=14)
@@ -81,5 +91,5 @@ plt.savefig('ethiopia_trend.png')
 print("   Saved: ethiopia_trend.png")
 
 print("\n" + "=" * 60)
-print("DONE! Check your folder for PNG files.")
+print("ETHIOPIA ANALYSIS COMPLETE")
 print("=" * 60)
